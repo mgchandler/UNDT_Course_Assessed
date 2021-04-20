@@ -24,9 +24,12 @@ sample_thickness = 7.8e-3;
 load(fname);
 
 %plot the data supplied
-plot(time, voltage);
-xlabel('Time (\mus)');
-ylabel('Voltage (V)');
+% plot(time(5:end), voltage(5:end));
+% xlabel('Time (\mus)');
+% ylabel('Voltage (V)');
+% text(6.75e-5, 0.2, "F")
+% text(7.3e-5, 0.1, "B1")
+% text(7.75e-5, 0.075, "B2")
 
 %write your own code here to determine the frequency-dependent attenuation
 %of perspex from the data supplied
@@ -88,6 +91,24 @@ spectrum_2 = spectrum_2(1:fft_pts/2);
 window_3 = fn_hanning(end_idxs(3)-start_idxs(3)+1, .5, .5);
 spectrum_3 = fft(voltage(start_idxs(3):end_idxs(3)) .* window_3, fft_pts);
 spectrum_3 = spectrum_3(1:fft_pts/2);
+
+
+%plot the data supplied
+figure(1)
+rectangle('Position', [time(start_idxs(1)+5), -0.2, time(end_idxs(1))-time(start_idxs(1)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
+rectangle('Position', [time(start_idxs(2)+5), -0.2, time(end_idxs(2))-time(start_idxs(2)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
+rectangle('Position', [time(start_idxs(3)+5), -0.2, time(end_idxs(3))-time(start_idxs(3)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
+hold on
+plot(time(5:end), real(voltage_signal(5:length(voltage))), 'b');
+plot(time(5:end), voltage_envelope(5:end), 'b--')
+xlabel('Time (\mus)');
+ylabel('Voltage (V)');
+text(6.75e-5, 0.15, "F")
+text(7.3e-5, 0.075, "B1")
+text(7.75e-5, 0.025, "B2")
+plot([time(5), time(end)], [threshold, threshold], 'r--')
+% plot([time(start_idxs(1)+5), time(start_idxs(1)+5)], [-0.2, 0.2], 'black')
+% plot([time(end_idxs(1)+5), time(end_idxs(1)+5)], [-0.2, 0.2], 'black')
 
 figure(2)
 plot(freq, abs(spectrum_1))
