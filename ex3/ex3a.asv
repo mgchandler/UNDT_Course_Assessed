@@ -112,7 +112,7 @@ legend('Signal', 'Signal Envelope', 'Threshold')
 % plot([time(start_idxs(1)+5), time(start_idxs(1)+5)], [-0.2, 0.2], 'black')
 % plot([time(end_idxs(1)+5), time(end_idxs(1)+5)], [-0.2, 0.2], 'black')
 
-freq_threshold = max(abs(spectrum_3))/5;
+freq_threshold = max(abs(spectrum_3))/10;
 
 F_B1_spec = spectrum_2 ./ spectrum_1;
 F_B1_spec(~and(abs(spectrum_1) > freq_threshold, abs(spectrum_2) > freq_threshold)) = [];
@@ -187,7 +187,4 @@ scatter(F_B1_freq, alpha_F_B1);
 hold on
 scatter(B1_B2_freq, alpha_B1_B2);
 scatter(F_B2_freq, alpha_F_B2);
-xlabel('Frequency (Hz)')
-ylabel('Attenuation \alpha(\omega) dB')
-box on
-legend('B_1 / F', 'B_2 / B_1', 'B_2 / F', 'Location', 'southeast')
+legend('F / B_1', 'B_1 / B_2', 'F / B_2')
