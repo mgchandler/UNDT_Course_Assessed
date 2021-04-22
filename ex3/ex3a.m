@@ -95,22 +95,23 @@ spectrum_3 = spectrum_3(1:fft_pts/2);
 
 %plot the data supplied
 figure(1)
-axes('box', 'on')
-rectangle('Position', [time(start_idxs(1)+5), -0.2, time(end_idxs(1))-time(start_idxs(1)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
-rectangle('Position', [time(start_idxs(2)+5), -0.2, time(end_idxs(2))-time(start_idxs(2)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
-rectangle('Position', [time(start_idxs(3)+5), -0.2, time(end_idxs(3))-time(start_idxs(3)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
+rectangle('Position', [time(start_idxs(1)+5)*10^6, -0.2, time(end_idxs(1))*10^6-time(start_idxs(1))*10^6, 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
+rectangle('Position', [time(start_idxs(2)+5)*10^6, -0.2, time(end_idxs(2))*10^6-time(start_idxs(2))*10^6, 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
+rectangle('Position', [time(start_idxs(3)+5)*10^6, -0.2, time(end_idxs(3))*10^6-time(start_idxs(3))*10^6, 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
 hold on
-plot(time(5:end), real(voltage_signal(5:length(voltage))), 'b');
-plot(time(5:end), voltage_envelope(5:end), 'b--')
+plot(time(5:end)*10^6, real(voltage_signal(5:length(voltage))), 'b');
+plot(time(5:end)*10^6, voltage_envelope(5:end), 'b--')
 xlabel('Time (\mus)');
 ylabel('Voltage V(t)');
-text(6.75e-5, 0.15, "F")
-text(7.3e-5, 0.075, "B_1")
-text(7.75e-5, 0.04, "B_2")
-plot([time(5), time(end)], [threshold, threshold], 'r--')
+text(67.5, 0.15, "F")
+text(73, 0.075, "B_1")
+text(77.5, 0.04, "B_2")
+plot([time(5)*10^6, time(end)*10^6], [threshold, threshold], 'r--')
+box on
 legend('Signal', 'Signal Envelope', 'Threshold')
-% plot([time(start_idxs(1)+5), time(start_idxs(1)+5)], [-0.2, 0.2], 'black')
-% plot([time(end_idxs(1)+5), time(end_idxs(1)+5)], [-0.2, 0.2], 'black')
+
+%%
+% Break point for plotting first figure.
 
 freq_threshold = max(abs(spectrum_3))/5;
 
@@ -137,28 +138,30 @@ fig = figure(2);
 ax1 = subplot(1,3,1, 'box', 'on');
 rectangle('Position', [time(start_idxs(1)+5), -0.2, time(end_idxs(1))-time(start_idxs(1)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
 hold on
-plot(F_freq, abs(F_spec), 'b')
-plot([min(F_freq), max(F_freq)], [freq_threshold, freq_threshold], 'r--')
-text(5e5, 5.25, 'F')
+plot(F_freq*10^-6, abs(F_spec), 'b')
+plot([min(F_freq)*10^-6, max(F_freq)*10^-6], [freq_threshold, freq_threshold], 'r--')
+text(5e5*10^-6, 5.25, 'F')
+ylabel('Voltage |V(\omega)|')
 ax2 = subplot(1,3,2);
-plot(B1_freq, abs(B1_spec), 'b')
+plot(B1_freq*10^-6, abs(B1_spec), 'b')
 hold on
-plot([min(B1_freq), max(B1_freq)], [freq_threshold, freq_threshold], 'r--')
-text(5e5, 5.25, 'B_1')
+plot([min(B1_freq)*10^-6, max(B1_freq)*10^-6], [freq_threshold, freq_threshold], 'r--')
+text(5e5*10^-6, 5.25, 'B_1')
+xlabel('Frequency (MHz)')
 ax3 = subplot(1,3,3);
-plot(B2_freq, abs(B2_spec), 'b')
+plot(B2_freq*10^-6, abs(B2_spec), 'b')
 hold on
-plot([min(B2_freq), max(B2_freq)], [freq_threshold, freq_threshold], 'r--')
-text(5e5, 5.25, 'B_2')
+plot([min(B2_freq)*10^-6, max(B2_freq)*10^-6], [freq_threshold, freq_threshold], 'r--')
+text(5e5*10^-6, 5.25, 'B_2')
 legend('Freq Spectrum', 'Threshold')
 linkaxes([ax1, ax2, ax3], 'xy')
 
-han=axes(fig,'visible','off'); 
-han.Title.Visible='on';
-han.XLabel.Visible='on';
-han.YLabel.Visible='on';
-ylabel(han,'Voltage |V(t)|');
-xlabel(han,'Frequency (Hz)');
+% han=axes(fig,'visible','off'); 
+% han.Title.Visible='on';
+% han.XLabel.Visible='on';
+% han.YLabel.Visible='on';
+% ylabel(han,'Voltage |V(t)|');
+% xlabel(han,'Frequency (MHz)');
 
 
 
@@ -183,11 +186,11 @@ alpha_F_B2 = -1 / (4 * d) * log(abs(F_B2_spec * R_12 / (T_12 * R_21^3 * T_21)));
 % plot(freq, spectrum_2)
 
 figure(3)
-scatter(F_B1_freq, alpha_F_B1);
+scatter(F_B1_freq*10^-6, alpha_F_B1);
 hold on
-scatter(B1_B2_freq, alpha_B1_B2);
-scatter(F_B2_freq, alpha_F_B2);
-xlabel('Frequency (Hz)')
+scatter(B1_B2_freq*10^-6, alpha_B1_B2);
+scatter(F_B2_freq*10^-6, alpha_F_B2);
+xlabel('Frequency (MHz)')
 ylabel('Attenuation \alpha(\omega) dB')
 box on
 legend('B_1 / F', 'B_2 / B_1', 'B_2 / F', 'Location', 'southeast')
