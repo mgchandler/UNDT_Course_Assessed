@@ -18,7 +18,6 @@ d = 7.8e-3;
 
 %file name
 fname = '7_8mm_thick_perspex.mat';
-sample_thickness = 7.8e-3;
 
 %load file
 load(fname);
@@ -115,6 +114,8 @@ legend('Signal', 'Signal Envelope', 'Threshold')
 
 freq_threshold = max(abs(spectrum_3))/5;
 
+% Divide the spectra and apply thresholding for use later on in attenuation
+% calculation.
 F_B1_spec = spectrum_2 ./ spectrum_1;
 F_B1_spec(~and(abs(spectrum_1) > freq_threshold, abs(spectrum_2) > freq_threshold)) = [];
 F_B1_freq = freq(and(abs(spectrum_1) > freq_threshold, abs(spectrum_2) > freq_threshold));
@@ -127,34 +128,35 @@ F_B2_spec = spectrum_3 ./ spectrum_1;
 F_B2_spec(~and(abs(spectrum_1) > freq_threshold, abs(spectrum_3) > freq_threshold)) = [];
 F_B2_freq = freq(and(abs(spectrum_1) > freq_threshold, abs(spectrum_3) > freq_threshold));
 
-F_spec = spectrum_1(abs(spectrum_1) > freq_threshold);
-F_freq = freq(abs(spectrum_1) > freq_threshold);
-B1_spec = spectrum_2(abs(spectrum_2) > freq_threshold);
-B1_freq = freq(abs(spectrum_2) > freq_threshold);
-B2_spec = spectrum_3(abs(spectrum_3) > freq_threshold);
-B2_freq = freq(abs(spectrum_3) > freq_threshold);
+% Plot frequency spectra.
 
 fig = figure(2);
+
 ax1 = subplot(1,3,1, 'box', 'on');
 rectangle('Position', [time(start_idxs(1)+5), -0.2, time(end_idxs(1))-time(start_idxs(1)), 0.4], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
 hold on
-plot(F_freq*10^-6, abs(F_spec), 'b')
-plot([min(F_freq)*10^-6, max(F_freq)*10^-6], [freq_threshold, freq_threshold], 'r--')
-text(5e5*10^-6, 5.25, 'F')
+plot(freq(1:201)*10^-6, abs(spectrum_1(1:201)), 'b')
+plot([min(freq(1:201))*10^-6, max(freq(1:201))*10^-6], [freq_threshold, freq_threshold], 'r--')
+text(5e5*10^-6, 5.25, '(a) F')
 ylabel('Voltage |V(\omega)|')
+box on
+
 ax2 = subplot(1,3,2);
-plot(B1_freq*10^-6, abs(B1_spec), 'b')
+plot(freq(1:201)*10^-6, abs(spectrum_2(1:201)), 'b')
 hold on
-plot([min(B1_freq)*10^-6, max(B1_freq)*10^-6], [freq_threshold, freq_threshold], 'r--')
-text(5e5*10^-6, 5.25, 'B_1')
+plot([min(freq(1:201))*10^-6, max(freq(1:201))*10^-6], [freq_threshold, freq_threshold], 'r--')
+text(5e5*10^-6, 5.25, '(b) B_1')
 xlabel('Frequency (MHz)')
+box on
+
 ax3 = subplot(1,3,3);
-plot(B2_freq*10^-6, abs(B2_spec), 'b')
+plot(freq(1:201)*10^-6, abs(spectrum_3(1:201)), 'b')
 hold on
-plot([min(B2_freq)*10^-6, max(B2_freq)*10^-6], [freq_threshold, freq_threshold], 'r--')
-text(5e5*10^-6, 5.25, 'B_2')
+plot([min(freq(1:201))*10^-6, max(freq(1:201))*10^-6], [freq_threshold, freq_threshold], 'r--')
+text(5e5*10^-6, 5.25, '(c) B_2')
 legend('Freq Spectrum', 'Threshold')
 linkaxes([ax1, ax2, ax3], 'xy')
+box on
 
 % han=axes(fig,'visible','off'); 
 % han.Title.Visible='on';
@@ -162,6 +164,13 @@ linkaxes([ax1, ax2, ax3], 'xy')
 % han.YLabel.Visible='on';
 % ylabel(han,'Voltage |V(t)|');
 % xlabel(han,'Frequency (MHz)');
+
+F_spec = spectrum_1(abs(spectrum_1) > freq_threshold);
+F_freq = freq(abs(spectrum_1) > freq_threshold);
+B1_spec = spectrum_2(abs(spectrum_2) > freq_threshold);
+B1_freq = freq(abs(spectrum_2) > freq_threshold);
+B2_spec = spectrum_3(abs(spectrum_3) > freq_threshold);
+B2_freq = freq(abs(spectrum_3) > freq_threshold);
 
 
 
@@ -177,13 +186,21 @@ R_21 = (z_perspex - z_water) / (z_perspex + z_water);
 T_12 = 2 * z_water / (z_water + z_perspex);
 T_21 = 2 * z_perspex / (z_perspex + z_water);
 
+% Beam spreading parameters.
+
+standoff = time(start_idxs(1)) * 1500.0 / 2;
+
+B_F = 1 / sqrt(2*standoff);
+B_B1 = 1 / sqrt(2*standoff + 2*d);
+
+
 alpha_F_B1 = -1 / (2 * d) * log(abs(F_B1_spec * R_12 / (T_12 * R_21 * T_21)));
 alpha_B1_B2 = -1 / (2 * d) * log(abs(B1_B2_spec / (R_21^2)));
 alpha_F_B2 = -1 / (4 * d) * log(abs(F_B2_spec * R_12 / (T_12 * R_21^3 * T_21)));
 
-% plot(freq, spectrum_1)
-% hold on
-% plot(freq, spectrum_2)
+alpha_F_B1_BS = -1 / (2 * d) * log(abs(F_B1_spec * R_12 / (T_12 * R_21 * T_21) * B_F / B_B1));
+
+% Plot Attenuation
 
 figure(3)
 scatter(F_B1_freq*10^-6, alpha_F_B1);
@@ -193,4 +210,15 @@ scatter(F_B2_freq*10^-6, alpha_F_B2);
 xlabel('Frequency (MHz)')
 ylabel('Attenuation \alpha(\omega) dB')
 box on
-legend('B_1 / F', 'B_2 / B_1', 'B_2 / F', 'Location', 'southeast')
+legend('B_1 / F', 'B_2 / B_1', 'B_2 / F','Location', 'southeast')
+
+% Plot attenuation with beam spreading
+
+figure(4)
+scatter(F_B1_freq*10^-6, alpha_F_B1);
+hold on
+scatter(F_B1_freq*10^-6, alpha_F_B1_BS);
+xlabel('Frequency (MHz)')
+ylabel('Attenuation \alpha(\omega) dB')
+box on
+legend('No Beam Spreading', 'Beam Spreading','Location', 'southeast')

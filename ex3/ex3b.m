@@ -40,41 +40,8 @@ on_signal = on_signal(1:length(voltage_on));
 off_signal = ifft(off_spec, fft_pts);
 off_signal = off_signal(1:length(voltage_off));
 
-fig = figure(1);
-
-subplot(2,5,[2,3,4,5])
-ylim([-0.05, 0.05])
-plot(time*10^6, real(on_signal), 'b')
-hold on
-plot(time*10^6, abs(on_signal), 'r--')
-subplot(2,5,[7,8,9,10])
-ylim([-0.05, 0.05])
-plot(time*10^6, real(off_signal), 'b')
-hold on
-plot(time*10^6, abs(off_signal), 'r--')
-legend('Signal', 'Envelope')
-
-h = axes('Position',[0 0 1 1],'Visible','off');
-text(.5475, .04, 'Time (\mus)')
-yl = text(.2125, .43, 'Voltage V(t)');
-set(yl, 'Rotation', 90)
-
-rectangle('Position', [0, 0, 1, 1], 'EdgeColor', [0, 0, 0, 0])
-rectangle('Position', [0.105, 0.6, 0.03, 0.3])
-rectangle('Position', [0.075, 0.1, 0.03, 0.8])
-rectangle('Position', [0.04, 0.25, 0.035, 0.03])
-rectangle('Position', [0.04, 0.75, 0.035, 0.03])
-annotation('doublearrow', [0.075, 0.105], [0.925, 0.925])
-annotation('doublearrow', [0.105, 0.135], [0.925, 0.925])
-plate_1 = text(0.085, 0.95, '10.5 mm');
-plate_2 = text(0.125, 0.95, '8 mm');
-set(plate_1, 'Rotation', 20)
-set(plate_2, 'Rotation', 20)
-text(0.04, 0.22, 'T_{OFF}')
-text(0.04, 0.72, 'T_{ON}')
-
 % Get the appropriate response - this will be the third peak when threshold
-% is set to max(signal)/25.
+% is set to max(signal)/50.
 
 on_threshold = max(abs(on_signal))/50;
 off_threshold = max(abs(off_signal))/50;
@@ -115,7 +82,7 @@ end
 
 len_idx = max(end_idx_on - start_idx_on, end_idx_off - start_idx_off);
 
-% clear start_idx_on start_idx_off end_idx_on end_idx_off
+% Plot voltage signals
 
 fig = figure(1);
 
@@ -125,13 +92,16 @@ plot(time*10^6, real(on_signal), 'b')
 hold on
 rectangle('Position', [time(start_idx_on)*10^6, -0.1, time(start_idx_on+len_idx)*10^6-time(start_idx_on)*10^6, 0.2], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
 plot(time*10^6, abs(on_signal), 'r--')
+legend('Signal', 'Envelope')
+text(54.25, 0.08, '(a)')
+
 subplot(2,5,[7,8,9,10])
 ylim([-0.05, 0.05])
 plot(time*10^6, real(off_signal), 'b')
 hold on
 rectangle('Position', [time(start_idx_off)*10^6, -0.1, time(start_idx_off+len_idx)*10^6-time(start_idx_off)*10^6, 0.2], 'EdgeColor', 'none', 'FaceColor', [0.4660 0.8740 0.1880, .25])
 plot(time*10^6, abs(off_signal), 'r--')
-legend('Signal', 'Envelope')
+text(54.25, 0.08, '(b)')
 
 h = axes('Position',[0 0 1 1],'Visible','off');
 text(.5475, .04, 'Time (\mus)')
@@ -139,10 +109,10 @@ yl = text(.2125, .43, 'Voltage V(t)');
 set(yl, 'Rotation', 90)
 
 rectangle('Position', [0, 0, 1, 1], 'EdgeColor', [0, 0, 0, 0])
-rectangle('Position', [0.105, 0.6, 0.03, 0.3])
-rectangle('Position', [0.075, 0.1, 0.03, 0.8])
-rectangle('Position', [0.04, 0.25, 0.035, 0.03])
-rectangle('Position', [0.04, 0.75, 0.035, 0.03])
+rectangle('Position', [0.105, 0.6, 0.03, 0.3], 'FaceColor', [.75, .75, .75])
+rectangle('Position', [0.075, 0.1, 0.03, 0.8], 'FaceColor', [.75, .75, .75])
+rectangle('Position', [0.05, 0.25, 0.025, 0.03], 'FaceColor', [.5, .5, 1])
+rectangle('Position', [0.05, 0.75, 0.025, 0.03], 'FaceColor', [.5, .5, 1])
 annotation('doublearrow', [0.075, 0.105], [0.925, 0.925])
 annotation('doublearrow', [0.105, 0.135], [0.925, 0.925])
 plate_1 = text(0.085, 0.95, '10.5 mm');
@@ -151,14 +121,6 @@ set(plate_1, 'Rotation', 20)
 set(plate_2, 'Rotation', 20)
 text(0.04, 0.22, 'T_{OFF}')
 text(0.04, 0.72, 'T_{ON}')
-
-figure(2)
-plot(time(start_idx_on:start_idx_on+len_idx), real(on_signal(start_idx_on:start_idx_on+len_idx)), 'b')
-hold on
-plot(time(start_idx_on:start_idx_on+len_idx), abs(on_signal(start_idx_on:start_idx_on+len_idx)), 'r--')
-plot(time(start_idx_off:start_idx_off+len_idx), real(off_signal(start_idx_off:start_idx_off+len_idx))+0.1, 'b')
-plot(time(start_idx_off:start_idx_off+len_idx), abs(off_signal(start_idx_off:start_idx_off+len_idx))+0.1, 'r--')
-
 
 % Get the frequency spectra.
 
@@ -224,7 +186,7 @@ freq = freq_on(start_idx:end_idx);
 
 R_21_on = R_21_off * real(refl_spec_on_1 ./ refl_spec_off_1);
 
-
+% Plot reflection coefficient
 
 fig = figure(3);
 subplot(1,2,1)
