@@ -11,6 +11,7 @@ el_sep = .05e-3;
 v_L = 1500.0;
 backwall_dist = 20.0e-3;
 grid_pts = 251;
+imaging_aperture = el_pitch * num_els / 4;
 scat_coords = [[-2.25e-3,  5.00e-3]; ...
                [-1.00e-3,  7.50e-3]; ...
                [ 0.25e-3, 10.00e-3]; ...
@@ -29,11 +30,8 @@ oversample = 10; % How often per cycle the signal is sampled.
 %% Parameters
 
 lambda = v_L / centre_freq;
-omega = 2 * pi * centre_freq;
 
-% Set probe z-coordinate to small non-zero. This prevents errors when
-% propagating the signal later on.
-probe_coords = -0.01e-3 * ones(num_els, 2);
+probe_coords = zeros(num_els, 2);
 probe_coords(:, 1) = linspace(0, el_pitch*(num_els-1), num_els);
 probe_coords(:, 1) = probe_coords(:, 1) - mean(probe_coords(:, 1));
 
@@ -49,8 +47,11 @@ time = [0 : dt : max_time];
 
 half_pulse = 5 / (2 * centre_freq);
 
-input_signal = sin(omega * time)' .* ...
+input_signal = sin(2 * pi * centre_freq * time)' .* ...
                fn_hanning(length(time), half_pulse / max_time, half_pulse / max_time);
+           
+% Bring peak of input pulse to time = 0.
+time = time - half_pulse;
            
            
            
@@ -58,6 +59,7 @@ fft_pts = 2^nextpow2(length(time));
 
 df = 1 / max_time;
 freq = [0 : df : df*(fft_pts/2-1)];
+omega = 2 * pi * freq;
 
 input_spectrum = fft(input_signal, fft_pts);
 input_spectrum = input_spectrum(1:fft_pts/2);
@@ -91,12 +93,15 @@ bw_theta_rx = acos((2*(backwall_dist - probe_coords(rx, 2)')) ./ bw_dists);
 
 % Directivity includes both transmit and receive paths. N.B. this function
 % takes into account that in Matlab, sinc(x) := sin(πx)/(πx)
-scat_dir = (el_pitch - el_sep)^2 * sinc((el_pitch - el_sep) / lambda * sin(scat_theta_tx)) .* ...
-                                   sinc((el_pitch - el_sep) / lambda * sin(scat_theta_rx));
-scat_amp = 0.01 * scat_dir ./ (sqrt(scat_dists_tx) .* sqrt(scat_dists_rx)); % Includes beam spreading
+scat_dir = (el_pitch - el_sep)^2 * ...
+           sinc((el_pitch - el_sep) / lambda * sin(scat_theta_tx)) .* ...
+           sinc((el_pitch - el_sep) / lambda * sin(scat_theta_rx));
+% Amplitude includes scattering, directivity and beam spreading.
+scat_amp = 0.01 * scat_dir ./ (sqrt(scat_dists_tx) .* sqrt(scat_dists_rx));
                                
-bw_dir = (el_pitch - el_sep)^2 * sinc((el_pitch - el_sep) / lambda * sin(bw_theta_tx)) .* ...
-                                 sinc((el_pitch - el_sep) / lambda * sin(bw_theta_rx));
+bw_dir = (el_pitch - el_sep)^2 * ...
+         sinc((el_pitch - el_sep) / lambda * sin(bw_theta_tx)) .* ...
+         sinc((el_pitch - el_sep) / lambda * sin(bw_theta_rx));
 bw_amp = bw_dir ./ sqrt(bw_dists); % Perfect reflector => R = 1.
 
 
@@ -106,7 +111,7 @@ output_spectra = 0;
 for ss = 1:size(scat_coords, 1)
     output_spectra = output_spectra + ( ...
         spdiags(input_spectrum, 0, length(freq), length(freq)) * ...
-        exp(-1i * 2*pi*freq' * scat_times(:, ss)') * ...
+        exp(-1i * omega' * scat_times(:, ss)') * ...
         spdiags(scat_amp(:, ss), 0, length(tx), length(tx)) ...
     );
 end
@@ -114,12 +119,14 @@ end
 % Backwall
 output_spectra = output_spectra + ( ...
     spdiags(input_spectrum, 0, length(freq), length(freq)) * ...
-    exp(-1i * 2*pi*freq' * bw_times(:)') * ...
+    exp(-1i * omega' * bw_times(:)') * ...
     spdiags(bw_amp(:), 0, length(tx), length(tx)) ...
 );
 
 FMC_data = ifft(output_spectra, fft_pts, 1);
 FMC_data = FMC_data(1:length(time), :); 
+FMC_dt = 1 / (fft_pts * abs(freq(2) - freq(1)));
+FMC_time = [0 : FMC_dt : FMC_dt * (length(time)-1)];
 
 % End of simulation of wave.
 
@@ -131,21 +138,25 @@ z = linspace(-1e-3, backwall_dist + 1e-3, grid_pts);
 
 %% Plane
 
-aperture = .5e-3;
 Plane_lookup_times = 2 * Z(:)' / v_L;
+% Work out if each point is below the aperture for each tr pair
 is_in_aperture = logical( ...
-    abs(probe_coords(:, 1) - X(:)') <= aperture / 2 ...
+    abs(probe_coords(:, 1) - X(:)') <= imaging_aperture / 2 ...
 );
 
 Im_Plane = 0;
 tr = 1;
 for ti = 1:num_els
     for ri = 1:num_els
+        % Skip all tr pairs where there are no contributions.
         if and(any(is_in_aperture(ti, :)), any(is_in_aperture(ri, :)))
             Im_Plane = Im_Plane + reshape( ...
+    ... % Only contribute if this point in the image is below both tx and rx.
                 is_in_aperture(ti, :) .* is_in_aperture(ri, :) .* ...
-                interp1(time, FMC_data(:, tr), Plane_lookup_times, 'linear', 0), ...
-                size(X, 1), size(X, 2));
+    ... % Interpolate to find the data.
+                interp1(FMC_time, FMC_data(:, tr), Plane_lookup_times, 'linear', 0), ...
+                size(X, 1), size(X, 2) ...
+            );
         end
         tr = tr + 1;
     end
@@ -169,7 +180,7 @@ for ti = 1:num_els
         if and(any(is_in_aperture(ti, :)), any(is_in_aperture(ri, :)))
             Im_Focus = Im_Focus + reshape( ...
                 is_in_aperture(ti, :) .* is_in_aperture(ri, :) .* ...
-                interp1(time, FMC_data(:, tr), Focus_lookup_times(tr, :), 'linear', 0), ...
+                interp1(FMC_time, FMC_data(:, tr), Focus_lookup_times(tr, :), 'linear', 0), ...
                 size(X, 1), size(X, 2));
         end
         tr = tr + 1;
@@ -193,7 +204,7 @@ tau_Sector = reshape(Sector_lookup_times, num_els^2, size(R, 1), size(R, 2));
 Im_Sector = 0;
 for tr = 1:num_els^2
     Im_Sector = Im_Sector + ...
-        interp1(time, FMC_data(:, tr), squeeze(tau_Sector(tr, :, :)), 'linear', 0);
+        interp1(FMC_time, FMC_data(:, tr), squeeze(tau_Sector(tr, :, :)), 'linear', 0);
 end
 
 max_ = max(abs(Im_Sector), [], 'all');
@@ -202,17 +213,20 @@ dB_Sector(dB_Sector < -40) = -40;
 
 %% TFM
 
-% Places where the image will be focussed. In TFM, this is everywhere.
+% TFM lookup times are identical to focussed lookup times. Difference is
+% that we focus everywhere, instead of just below the aperture.
 
 Im_TFM = 0;
 tau_TFM = reshape(Focus_lookup_times, num_els^2, size(X, 1), size(X, 2));
 for tr = 1:num_els^2
     Im_TFM = Im_TFM + ...
-        interp1(time, FMC_data(:, tr), squeeze(tau_TFM(tr, :, :)), 'linear', 0);
+        interp1(FMC_time, FMC_data(:, tr), squeeze(tau_TFM(tr, :, :)), 'linear', 0);
 end
 
 max_ = max(abs(Im_TFM), [], 'all');
 dB_TFM = 20 * log10(abs(Im_TFM) ./ max_);
+
+%% Plotting
 
 figure(1)
 subplot(1,2,1)

@@ -16,8 +16,8 @@ kk = 1;
 t = tiledlayout(m,n);
 
 %% Inputs
-centre_frequency = 5e6;
-el_pitch = .15e-3;
+centre_frequency = 5.5e6;
+el_pitch = .135e-3;
 el_separation = .05e-3;
 num_els = 64;
 velocity_L = 1500;
