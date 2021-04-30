@@ -189,24 +189,29 @@ T_21 = 2 * z_perspex / (z_perspex + z_water);
 % Beam spreading parameters.
 
 standoff = time(start_idxs(1)) * 1500.0 / 2;
-
-B_F = 1 / sqrt(2*standoff);
-B_B1 = 1 / sqrt(2*standoff + 2*d);
-
+% γ used in beam spreading. As transducer is assumed to be normal to
+% plate, cos α = cos β = 1.
+gamma = c_l_water / c_l_perspex;
+% Only one B_F calculated as transmit and receive beam spreads are
+% identical due to single leg for ray.
+B_F = 1 / sqrt(standoff);
+B_B1_T = 1 / sqrt(standoff + d/gamma);
+% On receive path, γ_R = 1/γ_T
+B_B1_R = 1 / sqrt(d + standoff * gamma);
 
 alpha_F_B1 = -1 / (2 * d) * log(abs(F_B1_spec * R_12 / (T_12 * R_21 * T_21)));
 alpha_B1_B2 = -1 / (2 * d) * log(abs(B1_B2_spec / (R_21^2)));
 alpha_F_B2 = -1 / (4 * d) * log(abs(F_B2_spec * R_12 / (T_12 * R_21^3 * T_21)));
 
-alpha_F_B1_BS = -1 / (2 * d) * log(abs(F_B1_spec * R_12 / (T_12 * R_21 * T_21) * B_F / B_B1));
+alpha_F_B1_BS = -1 / (2 * d) * log(abs(F_B1_spec * R_12 / (T_12 * R_21 * T_21) * B_F^2 / (B_B1_T * B_B1_R)));
 
 % Plot Attenuation
 
 figure(3)
-scatter(F_B1_freq*10^-6, alpha_F_B1);
+scatter(F_B1_freq*10^-6, alpha_F_B1, '.');
 hold on
-scatter(B1_B2_freq*10^-6, alpha_B1_B2);
-scatter(F_B2_freq*10^-6, alpha_F_B2);
+scatter(B1_B2_freq*10^-6, alpha_B1_B2, '.');
+scatter(F_B2_freq*10^-6, alpha_F_B2, '.');
 xlabel('Frequency (MHz)')
 ylabel('Attenuation \alpha(\omega) dB')
 box on
@@ -215,9 +220,9 @@ legend('B_1 / F', 'B_2 / B_1', 'B_2 / F','Location', 'southeast')
 % Plot attenuation with beam spreading
 
 figure(4)
-scatter(F_B1_freq*10^-6, alpha_F_B1);
+scatter(F_B1_freq*10^-6, alpha_F_B1, '.');
 hold on
-scatter(F_B1_freq*10^-6, alpha_F_B1_BS);
+scatter(F_B1_freq*10^-6, alpha_F_B1_BS, '.');
 xlabel('Frequency (MHz)')
 ylabel('Attenuation \alpha(\omega) dB')
 box on
